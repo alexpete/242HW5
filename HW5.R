@@ -3,7 +3,10 @@
 # parallel using random forests and bagging
 ###########################################################
 library(parallel)
+library(randomForest)
 Sys.setlocale(locale="C") # for strange characters in 2001.csv and 2002.csv
+
+########################## Get Sample ###########################
 
 # Yearly csv files should be in a directory called Data
 setwd('Data')
@@ -28,11 +31,37 @@ flts.smp = clusterApply(cl, files, function(f){
   close(con)
   tbl = read.table(textConnection(val), sep = ',')
   names(tbl) = nms
-  tbl[-c(11, 14, 20, 21, 23, 25:29)] # remove fields with almost all NAs
+  
+  # remove fields with over 1/3 NA'a, and also origin and destination (too many levels)
+  
+  tbl[-c(11, 14, 20:29)]
+
 })
 
-flts.smp = do.call(rbind, flts.smp)
 stopCluster(cl)
 
-save.image(file = '../get_sample.rda')
+flts.smp = do.call(rbind, flts.smp)
+
+#remove Cancelled and Diverted flights, as well as flights without distance available
+flts.smp = flts.smp[!is.na(flts.smp$ArrDelay) & !is.na(flts.smp$Distance), ] 
+
+########################## Get Random Forests ###########################
+
+cl = makeCluster(4, type = 'FORK') #make another fork to avoid transfer of data
+clusterSetRNGStream(cl, 392757)
+
+flts.rf = clusterEvalQ(cl, randomForest(x = flts.smp[-c(13, 15, 16)], 
+                                        y = factor(flts.smp$ArrDelay>10), 
+                                        ntree = 100, nodesize = 1000))
+
+flts.rf = do.call(combine, flts.rf)
+
+########################## Perform Bagging ###########################
+# bagging just means set mtry = 
+
+flts.bag = clusterEvalQ(cl, randomForest(x = flts.smp[-c(13, 15, 16)], 
+                                         y = factor(flts.smp$ArrDelay>10), 
+                                         ntree = 100, nodesize = 1000))
+
+
 
