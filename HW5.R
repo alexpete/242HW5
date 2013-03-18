@@ -34,7 +34,7 @@ flts.smp = clusterApply(cl, files, function(f){
   
   # remove fields with over 1/3 NA'a, and also origin and destination (too many levels)
   
-  tbl[-c(11, 14, 20:29)]
+  tbl[-c(11, 14, 17, 18, 20:29)]
 
 })
 
@@ -50,18 +50,30 @@ flts.smp = flts.smp[!is.na(flts.smp$ArrDelay) & !is.na(flts.smp$Distance), ]
 cl = makeCluster(4, type = 'FORK') #make another fork to avoid transfer of data
 clusterSetRNGStream(cl, 392757)
 
-flts.rf = clusterEvalQ(cl, randomForest(x = flts.smp[-c(13, 15, 16)], 
+flts.rf = clusterEvalQ(cl, randomForest(x = flts.smp[-13)], 
                                         y = factor(flts.smp$ArrDelay>10), 
-                                        ntree = 100, nodesize = 1000))
+                                        ntree = 100, maxnodes = 100))
 
 flts.rf = do.call(combine, flts.rf)
+stopCluster(cl)
 
 ########################## Perform Bagging ###########################
-# bagging just means set mtry = 
+# bagging just means set mtry = 14
 
-flts.bag = clusterEvalQ(cl, randomForest(x = flts.smp[-c(13, 15, 16)], 
+cl = makeCluster(4, type = 'FORK')
+clusterSetRNGStream(cl, 29380)
+
+flts.bag = clusterEvalQ(cl, randomForest(x = flts.smp[-13], 
                                          y = factor(flts.smp$ArrDelay>10), 
-                                         ntree = 100, nodesize = 1000))
+                                         ntree = 100, maxnodes = 100,
+                                         mtry = 14))
+
+stopCluster(cl)
+
+###################### Check Predictions #############################
+
+
+
 
 
 
