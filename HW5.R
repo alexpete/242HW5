@@ -55,12 +55,10 @@ flts.rf = clusterEvalQ(cl, randomForest(x = flts.smp[-13)],
                                         ntree = 100, maxnodes = 100))
 
 flts.rf = do.call(combine, flts.rf)
-stopCluster(cl)
 
 ########################## Perform Bagging ###########################
 # bagging just means set mtry = 14
 
-cl = makeCluster(4, type = 'FORK')
 clusterSetRNGStream(cl, 29380)
 
 flts.bag = clusterEvalQ(cl, randomForest(x = flts.smp[-13], 
@@ -69,11 +67,3 @@ flts.bag = clusterEvalQ(cl, randomForest(x = flts.smp[-13],
                                          mtry = 14))
 
 stopCluster(cl)
-
-###################### Check Predictions #############################
-
-
-
-
-
-
